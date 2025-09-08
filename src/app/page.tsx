@@ -1,5 +1,4 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,23 +10,19 @@ import { getTasks } from "@/actions/getTasksDb";
 import { addNewTask } from "@/actions/addTasks";
 import { deleteTasks } from "@/actions/deleteTasks";
 import { updateTaskStatus } from "@/actions/updateTasksStatus";
-import {
-  ArrowDown,
-  Check,
-  List,
-  ListCheck,
-  Plus,
-  Sigma,
-  Trash,
-  LoaderCircle,
-} from "lucide-react";
+import {deleteCompletedTask} from "@/actions/deleteCompletedTasks"
+import { ListCheck, Plus, Sigma, Trash, LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import Filter from "@/components/app-components/filter";
+import { FilterType } from "@/components/app-components/filter";
 
 export default function Home() {
   const [taskList, setTaskList] = useState<Tasks[]>([]);
   const [task, setTask] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [currentFilter, setCurrentFilter] = useState<FilterType>("all");
+  const [filteredTask, setFilteredTask] = useState<Tasks[]>([]);
 
   //Essa função pega os dados que estão no banco de dados
   const handleGetTasks = async () => {
@@ -104,9 +99,38 @@ export default function Home() {
     }
   };
 
+  //função que apaga as tarefas concluidas 
+  const clearCompletedTasks = async () => {
+    const deletedTasks = await deleteCompletedTask()
+    if(!deletedTasks) return
+    setTaskList(deletedTasks)
+  }
+
+
+
   useEffect(() => {
     handleGetTasks();
   }, []);
+
+  //Esse useEffect é o filtro das tarefas, quando clica em um dos botões ele altera o valor do currentFilter, entra no switch e dependendo do botão que foi clicado ele vai fazer alguns filtros
+  useEffect(() => {
+    switch (currentFilter) {
+      case "all": //Caso clique no botão todos(all) ele vai mostrar todos os itens no banco de dados
+        setFilteredTask(taskList);
+        break;
+      case "pending": //Caso clique em não finalizados(pending) ele vai mostrar apenas os itens no banco de dados mostra o done=false
+        const pendingTasks = taskList.filter((task) => !task.done);
+        setFilteredTask(pendingTasks);
+        break;
+      case "completed": //Caso clique em Concluídas(completed) ele vai mostrar apenas os itens no banco de dados mostra o done=true
+        const completedTasks = taskList.filter((task) => task.done);
+        setFilteredTask(completedTasks);
+        break;
+      //Após o caso ele vai colocar o conteudo no setFilteredTask que vai alterar o estado dos itens na tela
+      default:
+        break;
+    }
+  }, [currentFilter, taskList]);
 
   return (
     <main className="w-full h-screen bg-gray-300 flex items-center justify-center">
@@ -130,22 +154,18 @@ export default function Home() {
 
           <CardContent>
             <Separator className="mb-4" />
-            <div className="flex items-start gap-2">
-              <Badge variant="default" className="cursor-pointer">
-                <List />
-                Todas
-              </Badge>
-              <Badge variant="outline" className="cursor-pointer">
-                <ArrowDown />
-                Não finalizadas
-              </Badge>
-              <Badge variant="outline" className="cursor-pointer">
-                <Check /> Concluídas
-              </Badge>
-            </div>
+            <Filter
+              currentFilter={currentFilter}
+              setCurrentFilter={setCurrentFilter}
+            />
 
             <div className="mt-2 py-2 flex flex-col gap-1">
-              {taskList.map((task) => (
+              {taskList.length === 0 && (
+                <p className="text-sm border-t-1 py-4">
+                  Você não tem atividades cadastradas
+                </p>
+              )}
+              {filteredTask.map((task) => (
                 <div
                   className="h-14 flex items-center justify-between border-b-1 border-t-1"
                   key={task.id}
@@ -179,22 +199,29 @@ export default function Home() {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2 py-2">
                 <ListCheck size={18} />
-                <p className="text-xs"> Tarefas concluídas</p>
+                <p className="text-xs">
+                  {" "}
+                  Tarefas concluídas (
+                  {taskList.filter((task) => task.done).length}/
+                  {taskList.length})
+                </p>
               </div>
 
-              <ClearTask />
+              <ClearTask clearCompletedTasks={clearCompletedTasks} />
               {/*Componente*/}
             </div>
-            <div className="h-2 w-full bg-amber-300 mt-4 rounded-md">
+            <div className="h-2 w-full bg-gray-200 mt-4 rounded-md">
               <div
                 className="h-full bg-blue-500 rounded-md"
-                style={{ width: "50%" }}
+                style={{
+                  width: `${(taskList.filter((task) => task.done).length / taskList.length) * 100}%`
+                }}
               ></div>
             </div>
 
             <div className="flex justify-end items-center mt-2 gap-2">
               <Sigma size={18} />
-              <p className="text-xs"> 3 tarefas no total</p>
+              <p className="text-xs"> {taskList.length} tarefas no total</p>
             </div>
           </CardContent>
         </Card>

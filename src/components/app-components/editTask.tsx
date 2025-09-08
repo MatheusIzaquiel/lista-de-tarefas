@@ -15,20 +15,21 @@ import { useState } from "react";
 import { editTask } from "@/actions/editTasks";
 import { toast } from "sonner";
 
-type taskProps = {
+type TaskProps = {
   task: Tasks;
   handleGetTasks: () => void;
 };
 
-export default function EditTask({ task, handleGetTasks }: taskProps) {
+export default function EditTask({ task, handleGetTasks }: TaskProps) {
   const [editedTask, setEditedTask] = useState(task.task);
-
+  
+  //Função para atualizar as tarefas
   const handleEditTask = async () => {
     try {
       if (editedTask !== task.task) {
-        toast.success("Tarefa alterada com sucesso");
+        toast.success("Tarefa alterada com sucesso!");
       } else {
-        toast.error("A tarefa n foi atualizada");
+        toast.error("A tarefa não foi atualizada!");
         return;
       }
 
